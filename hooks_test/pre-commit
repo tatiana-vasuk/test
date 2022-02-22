@@ -1,9 +1,0 @@
-#!/bin/sh -e
-
-SUB="BUG"
-
-if "$1" == *$SUB* ; then
-  echo "accept commit"
-else
-  echo "reject commit"
-fi
