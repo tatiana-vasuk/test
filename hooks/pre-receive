@@ -1,0 +1,46 @@
+#!/bin/bash
+
+DEC="false"
+PREFIX=("DEVOPS" "BUG-" "WFM-")
+JENKINS_VERSION=$(cat gate0pipeline.yaml | grep -m1 MasterBuildVersion | cut -f3 -d.)
+TICKET=$(cat $COMMIT_MSG_FILE | sed 's/.*BUG-/BUG-/' | cut -f1 -d' ')
+JIRA_VERSION=$(curl -s --request GET \
+  --url "https://kanasoftware.jira.com/rest/api/3/issue/$TICKET?fields=customfield_17803" \
+  --user 'tatsiana.vasiuk@verint.com:lqvBqWLrEl7l5ciNoMDgC02D' \
+  --header 'Accept: application/json' | awk -F"value" '{print $2}' | cut -f3 -d '"' | tail -c4)
+
+echo -e "JENKINS_VERSION - $JENKINS_VERSION"
+echo -e "TICKET - $TICKET"
+echo -e "JIRA_VERSION - $JIRA_VERSION"
+  
+  
+while read oldsha newsha refname; do
+        echo "oldsha :" $oldsha
+        echo "newsha :" $newsha
+        echo "refname :" $refname
+        names=`git rev-list $oldsha..$newsha`
+        echo $names
+        for name in $names; do
+                echo "looking in the commit: " $name
+                message=`git cat-file -p $name|sed '1,/^$/d'`
+                echo $message
+                if [[ $(echo $message |grep -i "TASK-[0-9][0-9][0-9][0-9][0-9][0-9]*") ]]; then
+                        echo "inside if"
+                        echo "Message accepted"
+                        status=0
+                else
+                        echo "inside else "
+                        echo "message not in correct format"
+                        status=1
+                fi
+        done
+        if [[ $status == 1 ]]; then
+                echo "Commits were not accepted"
+                echo "The JIRA Task ID was not found"
+                echo "PLease fix the commits and try to push again"
+                exit 1
+        fi
+done
+
+
+exit 1
